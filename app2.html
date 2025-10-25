@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bunk Buster — Advanced</title>
+<link rel="icon" type="image/png" href="https://media.istockphoto.com/id/2058142954/vector/read-book-man-flat-icon-pictogram-isolated-on-white.jpg?s=612x612&w=0&k=20&c=ipzlDDpw62OCCIQE407HmI62YsHMbEwrVskfMm4ODQ4=">
+
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/chomsky" rel="stylesheet">
+
+<!-- Font Awesome for social icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- html2canvas + jsPDF for PDF and share -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0f0f10; --card:rgba(30,30,30,0.9);
+    --glass-border: rgba(255,255,255,0.06);
+    --accent: #00ffcc; --accent-2:#00aaff;
+    --muted:#bdbdbd;
+  }
+
+  /* Light theme overrides */
+  :root.light{
+    --bg:#f6f7fb; --card: rgba(255,255,255,0.85);
+    --glass-border: rgba(0,0,0,0.06);
+    --accent:#006b5b; --accent-2:#006bff; --muted:#404040;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background: radial-gradient(circle at 10% 10%, #1b1b1c, #0f0f10); font-family:"Poppins",system-ui, Arial; color:#eee; -webkit-font-smoothing:antialiased;}
+  :root.light body{ background: linear-gradient(180deg,#f8fafc,#eef2ff); color:#222; }
+
+  /* floating blobs (play once) */
+  .bg-blob{ position:fixed; border-radius:50%; filter:blur(100px); opacity:0.36; z-index:0; pointer-events:none; transform-origin:center; animation:blobIn 2s forwards;}
+  .b1{ width:340px;height:340px; top:-90px; left:-80px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); }
+  .b2{ width:260px;height:260px; right:-80px; bottom:-80px; background:linear-gradient(135deg,var(--accent-2),#ff4db2); animation-delay:0.4s;}
+  .b3{ width:200px;height:200px; left:60%; top:40%; background:linear-gradient(135deg,#ff4db2,var(--accent)); animation-delay:0.8s;}
+  @keyframes blobIn{ from{ transform: translateY(30px) scale(.8); opacity:0; } to{ transform: translateY(0) scale(1); opacity:0.36; } }
+
+  /* container */
+  .wrap{ position:relative; z-index:1; max-width:1080px; margin:56px auto; padding:32px; display:grid; grid-template-columns: 420px 1fr; gap:24px; align-items:start;}
+  @media(max-width:900px){ .wrap{ grid-template-columns: 1fr; padding:20px; } }
+
+  .card{
+    background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--glass-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.55), inset 0 0 18px rgba(255,255,255,0.02);
+    transform: translateY(0); transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .card:hover{ transform: translateY(-6px); box-shadow:0 18px 40px rgba(0,0,0,0.6); }
+
+  /* title */
+  .title {
+    font-family:'Chomsky', serif; font-size:3.2rem; letter-spacing:2px; margin:0 0 10px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 50%, #fff 60%, var(--accent) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; position:relative;
+    text-shadow: 0 6px 28px rgba(0,255,204,0.12);
+    animation: titleEnter 900ms ease-out forwards;
+  }
+  .title::after{ content:""; position:absolute; left:-120%; top:0; width:60%; height:100%; pointer-events:none; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); animation:shimmer 900ms ease-out forwards;}
+  @keyframes shimmer{ from{ left:-120% } to{ left:120% } }
+  @keyframes titleEnter{ from{ opacity:0; transform: translateY(30px) scale(.98) } to{ opacity:1; transform:none } }
+
+  .sub { color:var(--muted); margin:0 0 18px; font-size:0.95rem; }
+
+  /* inputs */
+  label{ display:block; font-weight:600; margin:12px 0 6px; color:var(--muted); font-size:0.95rem; }
+  input[type=number], input[type=text], select{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.06); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.15)); color:inherit; outline:none; box-shadow: inset 4px 4px 8px rgba(0,0,0,0.4); }
+  .row{ display:flex; gap:10px; }
+  .small{ width:120px; }
+
+  .actions{ display:flex; gap:10px; margin-top:14px; }
+  button.primary{ flex:1; background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#001; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; box-shadow:0 8px 30px rgba(0,255,204,0.12); transition: transform .15s ease;}
+  button.primary:hover{ transform: translateY(-4px) scale(1.01); }
+  button.ghost{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:10px 12px; border-radius:10px; cursor:pointer; }
+
+  /* tooltip/info */
+  .info { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; font-size:12px; background:#333; color:#fff; margin-left:8px; position:relative; cursor:pointer; }
+  .tooltip{ position:absolute; bottom:120%; left:50%; transform:translateX(-50%); background:#fff; color:#111; padding:6px 10px; border-radius:8px; font-size:0.8rem; white-space:nowrap; box-shadow:0 6px 18px rgba(0,0,0,0.2); opacity:0; pointer-events:none; transition:opacity .18s; z-index:10; }
+  .info:hover .tooltip{ opacity:1; pointer-events:auto; }
+
+  /* planner grid */
+  .planner-wrap { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .planner-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .planner{ margin-top:4px; display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; }
+  .day{ background: rgba(255,255,255,0.02); padding:8px; border-radius:8px; text-align:center; font-size:0.85rem; cursor:pointer; user-select:none; border:1px solid rgba(255,255,255,0.03); transition: transform .12s; }
+  .day:hover{ transform: translateY(-4px); }
+  .day.bunked{ background: linear-gradient(90deg, rgba(255,50,50,0.12), rgba(255,50,50,0.06)); border-color: rgba(255,80,80,0.12); box-shadow: 0 6px 18px rgba(255,50,50,0.03) inset; }
+  .day.closed{ opacity:0.42; cursor:not-allowed; transform:none; }
+  .day .meta{ font-size:0.7rem; color:var(--muted); display:block; margin-top:6px; }
+
+  /* right column */
+  .right { display:flex; flex-direction:column; gap:18px; }
+  .chart-card{ padding:18px; display:flex; gap:18px; align-items:center; flex-wrap:wrap; justify-content:space-between; }
+
+  /* gauge ring area */
+  .gauge { width:160px; height:160px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .gauge .label{ position:absolute; text-align:center; font-weight:700; }
+  .gauge .small{ font-size:0.85rem; color:var(--muted); font-weight:600; }
+
+  /* result list */
+  .results-list{ margin-top:6px; display:flex; gap:10px; flex-direction:column; }
+  .result-item{ padding:10px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08)); border-radius:10px; border:1px solid rgba(255,255,255,0.03); }
+
+  /* footer */
+  footer{ grid-column: 1 / -1; text-align:center; color:var(--muted); margin-top:8px; font-size:0.95rem; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  footer .social-icons{ display:flex; gap:12px; margin-top:4px; }
+  footer .social-icons a{ color:var(--muted); font-size:1.4rem; transition: color .3s, transform .12s; }
+  footer .social-icons a:hover{ color:var(--accent-2); transform: translateY(-3px); }
+
+  /* small screens: make planner wrap / more usable */
+  @media(max-width:720px){
+    .planner{ grid-template-columns: repeat(4, 1fr); }
+    .title { font-size:2.8rem; }
+    .gauge { width:140px; height:140px; }
+  }
+  @media(max-width:420px){
+    .planner{ grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .title { font-size:2.2rem; }
+    .wrap{ padding:14px; margin:28px auto; }
+  }
+
+  /* custom cursor particles (subtle) */
+  .particle { position:fixed; width:8px; height:8px; background:var(--accent); border-radius:50%; pointer-events:none; opacity:0.9; transform:translate(-50%,-50%); mix-blend-mode:screen; transition: transform .2s linear, opacity .4s ease; z-index: 9999; }
+
+  /* small helpers */
+  .muted{ color:var(--muted); font-size:0.9rem; }
+  .center{ text-align:center; }
+
+  /* lighten for light theme */
+  :root.light .card{ box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+  :root.light .info{ background:#e6e6e6; color:#222; }
+</style>
+</head>
+<body>
+
+<!-- background blobs -->
+<div class="bg-blob b1"></div>
+<div class="bg-blob b2"></div>
+<div class="bg-blob b3"></div>
+
+<div class="wrap">
+  <!-- left column: controls -->
+  <div class="card">
+    <h1 class="title">Bunk Buster</h1>
+    <p class="sub">Predict, plan and protect your attendance. Toggle theme, plan bunks, or export a report.</p>
+
+    <!-- form -->
+    <div id="formArea">
+      <label>🎯 Current attendance percentage (%) <span class="info">ℹ️ <span class="tooltip">Enter your current overall attendance percentage (based on past record).</span></span></label>
+      <input id="currentPct" type="number" step="0.01" min="0" max="100" placeholder="e.g. 82.5">
+
+      <div style="display:flex; gap:10px; align-items:end; margin-top:6px;">
+        <div style="flex:1;">
+          <label>📅 Classes per day <span class="info">ℹ️ <span class="tooltip">Number of class sessions each day.</span></span></label>
+          <input id="classesPerDay" type="number" min="1" value="5">
+        </div>
+        <div style="width:150px;">
+          <label>📆 Future days <span class="info">ℹ️ <span class="tooltip">Days ahead to forecast (planner will appear).</span></span></label>
+          <input id="futureDays" type="number" min="0" value="14">
+        </div>
+      </div>
+
+      <label>❌ Expected future absent days <span class="info">ℹ️ <span class="tooltip">If you already know planned absent days (optional).</span></span></label>
+      <input id="expectedAbsentDays" type="number" min="0" value="0">
+
+      <label>🎯 Target attendance (%) <span class="info">ℹ️ <span class="tooltip">Enter a target to see how many bunks you can still take and tips to reach it.</span></span></label>
+      <input id="targetPct" type="number" min="0" max="100" placeholder="e.g. 75">
+
+      <div class="row actions">
+        <button class="primary" id="calcBtn">Calculate & Update</button>
+        <button class="ghost" id="saveBtn" title="Save to local">Save</button>
+        <button class="ghost" id="loadBtn" title="Load saved">Load</button>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="ghost" id="themeToggle" title="Toggle theme">Toggle Theme</button>
+        <button class="ghost" id="downloadPDF">Download PDF</button>
+        <button class="ghost" id="shareBtn">Share Image</button>
+      </div>
+
+      <!-- planner with saturday dropdown -->
+      <div class="planner-wrap">
+        <label>📋 Bunk Planner <span class="info">ℹ️ <span class="tooltip">Click days below to mark planned bunks. Planner updates chart live.</span></span></label>
+
+        <div class="planner-controls">
+          <div style="flex:1; min-width:200px;">
+            <label style="margin-bottom:6px;font-weight:700;color:var(--muted);font-size:0.85rem;">Saturday Schedule</label>
+            <select id="saturdayOption" aria-label="Saturday schedule">
+              <option value="all_closed" selected>All Saturdays closed (default)</option>
+              <option value="all_open">All Saturdays open</option>
+              <option value="2nd4th">2nd &amp; 4th Saturdays closed</option>
+            </select>
+            <div class="muted" style="margin-top:6px;font-size:0.85rem;">Sundays are always closed.</div>
+          </div>
+          <div style="flex:1; text-align:right;">
+            <div class="muted" style="font-size:0.85rem;">Tip: change <em>Future days</em> to adjust planner length.</div>
+          </div>
+        </div>
+
+        <div id="planner" class="planner" aria-hidden="false"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- right column: charts + results -->
+  <div class="right">
+    <div class="card chart-card">
+      <div style="flex:1;">
+        <canvas id="mainChart" height="240"></canvas>
+      </div>
+      <div style="width:200px; display:flex; flex-direction:column; align-items:center; gap:12px;">
+        <div class="gauge" id="gaugeWrap">
+          <canvas id="gauge" width="160" height="160"></canvas>
+          <div class="label">
+            <div style="font-size:1.4rem;font-weight:800" id="gaugePct">0%</div>
+            <div class="small muted">Predicted</div>
+          </div>
+        </div>
+
+        <div style="width:100%;" class="results-list">
+          <div class="result-item" id="maxBunks">Max bunks allowed: —</div>
+          <div class="result-item" id="dateRange">Prediction range: —</div>
+          <div class="result-item" id="suggestion">Suggestion: —</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px;">Details & Live Controls</h3>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="muted">Live chart updates as you plan bunks or change numbers.</div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label>Motivational Quote</label>
+        <div style="padding:10px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));" id="quoteBox">Stay focused — every class counts!</div>
+      </div>
+    </div>
+
+    <footer>
+      <div><strong>Bunk Buster</strong> helps you plan attendance smartly — see how many bunks you can take, set targets, and export reports.</div>
+      <div style="margin-top:6px;">Made with ❤️ by <strong>Zinna</strong></div>
+      <div class="social-icons" aria-hidden="false">
+        <a href="https://www.instagram.com/_unknownx69?igsh=YnQ2bzlnZWhsaWdn" target="_blank" rel="noopener noreferrer" title="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.linkedin.com/in/mr-zinna-a97a37283/" target="_blank" rel="noopener noreferrer" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+        <a href="https://github.com/unknownxx69" target="_blank" rel="noopener noreferrer" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- particle cursor element -->
+<div id="particle" class="particle" style="display:none;"></div>
+
+<script>
+/* -------------------------
+   Utilities & initial state
+   ------------------------- */
+const qs = s=>document.querySelector(s), qsa=s=>document.querySelectorAll(s);
+
+const elCurrent = qs('#currentPct'), elPerDay=qs('#classesPerDay'), elFuture=qs('#futureDays'),
+      elExpected=qs('#expectedAbsentDays'), elTarget=qs('#targetPct'),
+      btnCalc=qs('#calcBtn'), btnSave=qs('#saveBtn'), btnLoad=qs('#loadBtn'),
+      plannerEl=qs('#planner'), btnTheme=qs('#themeToggle'),
+      btnPDF = qs('#downloadPDF'), btnShare=qs('#shareBtn'),
+      saturdayOption = qs('#saturdayOption');
+
+let plannerState = []; // boolean array length futureDays (true = bunk planned)
+let closedMask = [];   // boolean array length futureDays (true = closed; not selectable)
+let mainChart=null;
+let animPlayed = { blobs:true, title:true };
+
+/* --- Keep theme preference --- */
+(function initTheme(){
+  const saved = localStorage.getItem('bb_theme');
+  if(saved === 'light') document.documentElement.classList.add('light');
+})();
+
+/* -------------------------
+   Helper: week-of-month (1..5)
+   ------------------------- */
+function weekOfMonth(date){
+  // week number counting from 1.. (1st week = days 1-7)
+  return Math.floor((date.getDate() - 1) / 7) + 1;
+}
+
+/* -------------------------
+   Planner rendering (respect closedMask and saturdayOption)
+   ------------------------- */
+function computeClosedMask(days){
+  const mask = [];
+  const start = new Date();
+  for(let i=0;i<days;i++){
+    const d = new Date();
+    d.setDate(start.getDate()+i);
+    // default: Sundays closed
+    if(d.getDay() === 0){
+      mask.push(true);
+      continue;
+    }
+    // Saturdays depending on option
+    if(d.getDay() === 6){
+      const opt = saturdayOption.value;
+      if(opt === 'all_open'){
+        mask.push(false);
+      } else if(opt === 'all_closed'){
+        mask.push(true);
+      } else if(opt === '2nd4th'){
+        const w = weekOfMonth(d);
+        mask.push( w === 2 || w === 4 );
+      } else {
+        mask.push(true);
+      }
+      continue;
+    }
+    // other days open
+    mask.push(false);
+  }
+  return mask;
+}
+
+function renderPlanner(){
+  const days = Math.max(0, parseInt(elFuture.value)||0);
+  // keep plannerState length consistent
+  plannerState = plannerState.slice(0, days);
+  while(plannerState.length < days) plannerState.push(false);
+
+  // recompute closedMask according to saturdayOption and Sundays
+  closedMask = computeClosedMask(days);
+
+  plannerEl.innerHTML = '';
+  const start = new Date();
+  for(let i=0;i<days;i++){
+    const d = new Date();
+    d.setDate(start.getDate()+i);
+    const label = `${d.getDate()}/${d.getMonth()+1}`;
+    const div = document.createElement('div');
+    div.className = 'day';
+    // closed days (Sunday always closed; Saturday depending on selection)
+    if(closedMask[i]){
+      div.classList.add('closed');
+      if(d.getDay() === 0) div.textContent = label + ' (Sun)';
+      else if(d.getDay() === 6) div.textContent = label + ' (Sat)';
+      else div.textContent = label;
+      div.title = d.toDateString() + ' — Closed';
+      // ensure plannerState for closed days is always false
+      plannerState[i] = false;
+    } else {
+      div.textContent = label + (d.getDay()===6 ? ' (Sat)' : '');
+      div.title = d.toDateString();
+      // apply bunked class if user marked bunk
+      if(plannerState[i]) div.classList.add('bunked');
+      div.addEventListener('click', ()=>{
+        // toggle bunk only if not closed
+        if(closedMask[i]) return;
+        plannerState[i] = !plannerState[i];
+        div.classList.toggle('bunked');
+        updateAll();
+      });
+    }
+
+    // small meta row (weekday label)
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    const daysOfWeek = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    meta.textContent = daysOfWeek[d.getDay()];
+    div.appendChild(meta);
+
+    plannerEl.appendChild(div);
+  }
+}
+
+/* -------------------------
+   Math: attendance predictions
+   ------------------------- */
+function computePredictions(){
+  const currentPct = parseFloat(elCurrent.value)||0;
+  const classesPerDay = parseInt(elPerDay.value)||1;
+  const futureDays = parseInt(elFuture.value)||0;
+
+  // assume pastDays = 100 (keeps consistent with original)
+  const assumedPastDays = 100;
+  const totalPastClasses = assumedPastDays * classesPerDay;
+  const attendedPast = (currentPct/100) * totalPastClasses;
+
+  // planned bunks: count only plannerState true (closed days are not bunks)
+  const plannerBunks = plannerState.reduce((s,v)=> s + (v?1:0), 0);
+  const expected = Math.max(0, parseInt(elExpected.value)||0);
+  const bunksUsed = Math.max(expected, plannerBunks);
+
+  const futureTotalClasses = futureDays * classesPerDay;
+  const futureAttendedClasses_planned = (futureDays - bunksUsed) * classesPerDay;
+  const finalTotalClasses = totalPastClasses + futureTotalClasses;
+  const finalAttendedPlanned = attendedPast + futureAttendedClasses_planned;
+  const finalPctPlanned = (finalAttendedPlanned / finalTotalClasses) * 100;
+
+  const finalAttendedAll = attendedPast + futureTotalClasses;
+  const finalPctAll = (finalAttendedAll / finalTotalClasses) * 100;
+
+  // If target given, compute how many bunks allowed to reach it
+  const target = (parseFloat(elTarget.value) || 0);
+  let maxBunksForTarget = null;
+  if(target > 0){
+    for(let a=0;a<=futureDays;a++){
+      const attendedIf = attendedPast + (futureDays - a) * classesPerDay;
+      const pct = (attendedIf / finalTotalClasses) * 100;
+      if(pct >= target) maxBunksForTarget = a; else break;
+    }
+  }
+
+  // date range: today -> futureDays ahead
+  const start = new Date();
+  const end = new Date();
+  end.setDate(start.getDate() + Math.max(0,futureDays));
+
+  return {
+    currentPct, classesPerDay, futureDays, expected, plannerBunks, bunksUsed,
+    finalPctPlanned, finalPctAll, maxBunksForTarget,
+    dateRange: { start: start, end: end }
+  };
+}
+
+/* -------------------------
+   Chart creation / update
+   ------------------------- */
+function createOrUpdateChart(pred){
+  const ctx = qs('#mainChart').getContext('2d');
+  const days = pred.futureDays;
+  const labels = [];
+  const dataAll = [], dataPlanned = [];
+  for(let a=0;a<=days;a++){
+    labels.push(a.toString());
+    const totalPast = 100 * pred.classesPerDay;
+    const totAll = totalPast + days * pred.classesPerDay;
+    const attAll = (pred.currentPct/100)*totalPast + (days * pred.classesPerDay);
+    const pctAll = (attAll / totAll) * 100;
+    const attPlanned = (pred.currentPct/100)*totalPast + (days - a) * pred.classesPerDay;
+    const pctPlanned = (attPlanned / totAll) * 100;
+    dataAll.push(+(pctAll.toFixed(2)));
+    dataPlanned.push(+(pctPlanned.toFixed(2)));
+  }
+
+  if(mainChart) mainChart.destroy();
+  mainChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Attend All (%)', data: dataAll, borderColor: '#7be7d1', backgroundColor:'rgba(123,231,209,0.08)', tension:0.35, fill:true, pointRadius:0 },
+        { label:'As Planned (%)', data: dataPlanned, borderColor: '#ffd27b', backgroundColor:'rgba(255,210,123,0.06)', tension:0.35, fill:true, pointRadius:3 }
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ position:'top', labels:{ color: getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#bdbdbd' }}},
+      scales:{
+        x:{ title:{ display:true, text:'Bunked Days', color:getComputedStyle(document.documentElement).getPropertyValue('--muted')}, ticks:{ color:getComputedStyle(document.documentElement).getPropertyValue('--muted') } },
+        y:{ min:0, max:100, title:{ display:true, text:'Attendance (%)', color:getComputedStyle(document.documentElement).getPropertyValue('--muted') }, ticks:{ color:getComputedStyle(document.documentElement).getPropertyValue('--muted') } }
+      },
+      animation:{ duration:600, easing:'easeOutQuart' }
+    }
+  });
+
+  // milestone line plugin (75%)
+  setTimeout(()=>{
+    Chart.register({
+      id: 'milestoneLine',
+      afterDraw: chart=>{
+        const c = chart.ctx;
+        if(!chart.scales.y) return;
+        const y = chart.scales.y.getPixelForValue(75);
+        c.save();
+        c.beginPath();
+        c.setLineDash([6,6]);
+        c.strokeStyle = 'rgba(255,255,255,0.14)';
+        c.lineWidth = 2;
+        c.moveTo(chart.chartArea.left, y);
+        c.lineTo(chart.chartArea.right, y);
+        c.stroke();
+        c.fillStyle='rgba(255,255,255,0.06)';
+        c.fillRect(chart.chartArea.left, y-1, chart.chartArea.right-chart.chartArea.left, 2);
+        c.restore();
+      }
+    });
+    mainChart.update();
+  }, 50);
+}
+
+/* -------------------------
+   Gauge
+   ------------------------- */
+function drawGauge(pct){
+  const canvas = qs('#gauge');
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  ctx.clearRect(0,0,size,size);
+  const center = size/2, radius = size/2 - 12;
+  // background ring
+  ctx.beginPath();
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.arc(center,center,radius, -Math.PI*0.75, Math.PI*0.75);
+  ctx.stroke();
+
+  const start = -Math.PI*0.75;
+  const end = start + (Math.max(0, Math.min(100,pct))/100) * (Math.PI*1.5);
+  const grad = ctx.createLinearGradient(0,0,size,size);
+  grad.addColorStop(0, 'rgba(0,255,204,0.9)');
+  grad.addColorStop(1, 'rgba(0,170,255,0.9)');
+  ctx.beginPath();
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 12;
+  ctx.lineCap = 'round';
+  ctx.arc(center,center,radius, start, end);
+  ctx.stroke();
+
+  qs('#gaugePct').textContent = pct.toFixed(1) + '%';
+}
+
+/* -------------------------
+   Update UI + suggestions + gauge + chart
+   ------------------------- */
+function updateAll(){
+  renderPlanner(); // render first so plannerState & closedMask sync
+  const pred = computePredictions();
+
+  // max bunks to maintain 75%
+  const classesPerDay = pred.classesPerDay;
+  const assumedPast = 100 * classesPerDay;
+  const totAll = assumedPast + pred.futureDays * classesPerDay;
+  let maxAllowed = 0;
+  for(let a=0;a<=pred.futureDays;a++){
+    const att = (pred.currentPct/100)*assumedPast + (pred.futureDays - a) * classesPerDay;
+    const pct = (att / totAll) * 100;
+    if(pct >= 75) maxAllowed = a; else break;
+  }
+
+  qs('#maxBunks').innerHTML = `<strong>Max bunks allowed</strong>: ${maxAllowed} out of ${pred.futureDays}`;
+  qs('#dateRange').innerHTML = `<strong>Prediction range</strong>: ${pred.dateRange.start.toLocaleDateString()} → ${pred.dateRange.end.toLocaleDateString()}`;
+
+  let suggestion = '';
+  const target = parseFloat(elTarget.value) || 0;
+  if(target>0 && pred.maxBunksForTarget !== null){
+    suggestion = `To keep ≥ ${target}% you can bunk up to ${pred.maxBunksForTarget} days in the period.`;
+  } else {
+    const finalPercPlanned = pred.finalPctPlanned;
+    if(finalPercPlanned >= 75) suggestion = `You're safe (predicted ${finalPercPlanned.toFixed(2)}%). Keep attending as planned.`;
+    else {
+      let needed = null;
+      for(let x=0; x <= pred.futureDays; x++){
+        const att = (pred.currentPct/100)*assumedPast + (pred.futureDays - pred.bunksUsed + x) * classesPerDay;
+        const pct = (att / totAll) * 100;
+        if(pct >= 75){ needed = x; break; }
+      }
+      if(needed === 0) suggestion = `You're on the edge; maintain current pattern.`;
+      else if(needed !== null) suggestion = `Attend fully for next ${needed} days to reach 75% threshold.`;
+      else suggestion = `Even attending all remaining days won't reach 75% — consider extra classes if available.`;
+    }
+  }
+  qs('#suggestion').innerHTML = `<strong>Suggestion</strong>: ${suggestion}`;
+
+  rotateQuote();
+  createOrUpdateChart(pred);
+  drawGauge(pred.finalPctPlanned || 0);
+
+  if((pred.finalPctPlanned || 0) >= 75){
+    confetti({ particleCount: 40, spread:60, origin:{ y:0.2 } });
+  }
+}
+
+/* -------------------------
+   Motivational quotes
+   ------------------------- */
+const quotes = [
+  "Small bunks today, big regrets tomorrow — attend 1 more class.",
+  "Attendance wins the race — keep the streak alive.",
+  "Plan smart: one missed class should be worth it.",
+  "Show up today — your future self will thank you.",
+  "Consistency beats intensity. Attend the next few days."
+];
+let qIdx = 0;
+function rotateQuote(){
+  qIdx = (qIdx + 1) % quotes.length;
+  qs('#quoteBox').textContent = quotes[qIdx];
+}
+
+/* -------------------------
+   Save / Load (localStorage)
+   ------------------------- */
+qs('#saveBtn').addEventListener('click', ()=>{
+  const state = {
+    currentPct: elCurrent.value,
+    classesPerDay: elPerDay.value,
+    futureDays: elFuture.value,
+    expectedAbsentDays: elExpected.value,
+    targetPct: elTarget.value,
+    saturdayOption: saturdayOption.value,
+    plannerState
+  };
+  localStorage.setItem('bunkbuster_state', JSON.stringify(state));
+  alert('Saved locally ✔️');
+});
+qs('#loadBtn').addEventListener('click', ()=>{
+  const s = localStorage.getItem('bunkbuster_state');
+  if(!s){ alert('No saved data'); return; }
+  const st = JSON.parse(s);
+  elCurrent.value = st.currentPct || '';
+  elPerDay.value = st.classesPerDay || 5;
+  elFuture.value = st.futureDays || 14;
+  elExpected.value = st.expectedAbsentDays || 0;
+  elTarget.value = st.targetPct || '';
+  if(st.saturdayOption) saturdayOption.value = st.saturdayOption;
+  plannerState = st.plannerState || [];
+  updateAll();
+});
+
+/* -------------------------
+   Theme toggle
+   ------------------------- */
+qs('#themeToggle').addEventListener('click', ()=>{
+  const root = document.documentElement;
+  const isLight = root.classList.toggle('light');
+  localStorage.setItem('bb_theme', isLight ? 'light' : 'dark');
+});
+
+/* -------------------------
+   PDF download (html2canvas + jspdf)
+   ------------------------- */
+qs('#downloadPDF').addEventListener('click', async ()=>{
+  const btn = qs('#downloadPDF');
+  btn.disabled = true;
+  btn.textContent = 'Preparing...';
+  const node = qs('.right');
+  try{
+    const canvas = await html2canvas(node, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit:'px', format:[canvas.width, canvas.height+80] });
+    pdf.setFontSize(18);
+    pdf.text('Bunk Buster Report', 20, 28);
+    pdf.addImage(imgData, 'PNG', 20, 44, canvas.width-40, canvas.height-40);
+    pdf.save('bunkbuster-report.pdf');
+  }catch(e){
+    console.error(e);
+    alert('Could not generate PDF.');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Download PDF';
+  }
+});
+
+/* -------------------------
+   Share image (screenshot)
+   ------------------------- */
+qs('#shareBtn').addEventListener('click', async ()=>{
+  const btn = qs('#shareBtn');
+  btn.disabled=true; btn.textContent='Preparing...';
+  const node = qs('.right');
+  try{
+    const canvas = await html2canvas(node, { scale: 2, useCORS:true });
+    const img = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = img; a.download = 'bunkbuster-share.png'; document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ alert('Could not create image.'); console.error(e); }
+  btn.disabled=false; btn.textContent='Share Image';
+});
+
+/* -------------------------
+   Event wiring & dynamic updates
+   ------------------------- */
+function debounce(fn, delay=250){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), delay); }; }
+
+elCurrent.addEventListener('input', debounce(updateAll,250));
+elPerDay.addEventListener('input', debounce(()=>{ renderPlanner(); updateAll(); },250));
+elFuture.addEventListener('input', debounce(()=>{ renderPlanner(); updateAll(); },300));
+elExpected.addEventListener('input', debounce(updateAll,250));
+elTarget.addEventListener('input', debounce(updateAll,250));
+saturdayOption.addEventListener('change', ()=>{ renderPlanner(); updateAll(); });
+qs('#calcBtn').addEventListener('click', updateAll);
+
+/* -------------------------
+   Custom cursor particle
+   ------------------------- */
+const particle = qs('#particle');
+document.addEventListener('mousemove', e=>{
+  particle.style.display='block';
+  particle.style.left = e.clientX + 'px';
+  particle.style.top = e.clientY + 'px';
+  particle.style.opacity = 0.95;
+  setTimeout(()=> particle.style.opacity = 0.2, 200);
+});
+
+/* -------------------------
+   Initial boot
+   ------------------------- */
+(function boot(){
+  if(!elPerDay.value) elPerDay.value = 5;
+  if(!elFuture.value) elFuture.value = 14;
+  // load saved saturdayOption if present
+  const saved = localStorage.getItem('bunkbuster_state');
+  if(saved){
+    try{
+      const st = JSON.parse(saved);
+      if(st && st.saturdayOption) saturdayOption.value = st.saturdayOption;
+    }catch(e){}
+  }
+  renderPlanner();
+  updateAll();
+  qs('#quoteBox').textContent = quotes[0];
+})();
+</script>
+</body>
+</html>
